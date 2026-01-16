@@ -6,6 +6,7 @@ import connectDB from "./config/db.js";
 // Routes
 import authRoutes from "./routes/auth.routes.js";
 import userRoutes from "./routes/user.routes.js";
+import questionRoutes from "./routes/question.routes.js";
 
 dotenv.config();
 connectDB();
@@ -24,6 +25,8 @@ app.get("/", (req, res) => {
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/questions", questionRoutes);
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () =>
