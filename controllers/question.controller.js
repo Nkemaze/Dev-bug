@@ -3,8 +3,9 @@ import Question from "../models/Question.js";
 // Create Question
 export const createQuestion = async (req, res) => {
   try {
-    const { title, body, tags } = req.body;
+    console.log("REQ.USER:", req.user); // <-- check this
 
+    const { title, body, tags } = req.body;
     const question = await Question.create({
       title,
       body,
@@ -14,9 +15,11 @@ export const createQuestion = async (req, res) => {
 
     res.status(201).json(question);
   } catch (error) {
-    res.status(500).json({ message: "Failed to create question" });
+    console.error("Create question error:", error); // <-- full error
+    res.status(500).json({ message: error.message });
   }
 };
+
 
 // Get All Questions
 export const getQuestions = async (req, res) => {

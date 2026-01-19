@@ -2,6 +2,7 @@ import Answer from "../models/Answer.js";
 import Question from "../models/Question.js";
 
 // Post Answer
+// Post Answer
 export const createAnswer = async (req, res) => {
   try {
     const { body } = req.body;
@@ -12,20 +13,27 @@ export const createAnswer = async (req, res) => {
       return res.status(404).json({ message: "Question not found" });
     }
 
+    // Create answer
     const answer = await Answer.create({
       body,
       userId: req.user.id,
       questionId,
     });
 
+    // Populate user info before sending response
+    const populatedAnswer = await Answer.findById(answer._id)
+      .populate("userId", "name reputation");
+
     res.status(201).json({
       message: "Answer posted successfully",
-      answer,
+      answer: populatedAnswer,
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Failed to post answer" });
   }
 };
+
 
 // Get Answers by Question
 export const getAnswersByQuestion = async (req, res) => {

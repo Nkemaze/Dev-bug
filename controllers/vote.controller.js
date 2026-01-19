@@ -113,3 +113,24 @@ export const votePost = async (req, res) => {
     res.status(500).json({ message: "Voting failed" });
   }
 };
+
+export const getVotes = async (req, res) => {
+  try {
+    const { postType, postId } = req.params;
+
+    if (!["question", "answer"].includes(postType)) {
+      return res.status(400).json({ message: "Invalid post type" });
+    }
+
+    const votes = await Vote.find({ postType, postId });
+
+    // Optionally, you can return upvotes/downvotes separately:
+    const upvotes = votes.filter(v => v.voteType === "up").length;
+    const downvotes = votes.filter(v => v.voteType === "down").length;
+
+    res.json({ total: votes.length, upvotes, downvotes });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch votes" });
+  }
+};
