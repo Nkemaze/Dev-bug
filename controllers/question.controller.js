@@ -1,4 +1,6 @@
 import Question from "../models/Question.js";
+import Answer from "../models/Answer.js";
+import Vote from "../models/Vote.js";
 
 // Create Question
 export const createQuestion = async (req, res) => {
@@ -22,15 +24,93 @@ export const createQuestion = async (req, res) => {
 
 
 // Get All Questions
+// export const getQuestions = async (req, res) => {
+//   try {
+//     const questions = await Question.find()
+//       .populate("userId", "name reputation")
+//       .sort({ createdAt: -1 });
+
+//     res.json(questions);
+//   } catch (error) {
+//     res.status(500).json({ message: "Failed to fetch questions" });
+//   }
+// };
+
+//filter questions by newest, active, votes, unanswered
 export const getQuestions = async (req, res) => {
   try {
-    const questions = await Question.find()
-      .populate("userId", "name reputation")
-      .sort({ createdAt: -1 });
+    const { filter } = req.query;
 
+    // Unanswered: questions that have no answers
+    if (filter === "unanswered") {
+      const answeredIds = await Answer.distinct("questionId");
+      const unanswered = await Question.find({ _id: { $nin: answeredIds } })
+        .populate("userId", "name reputation")
+        .sort({ createdAt: -1 });
+
+      return res.json(unanswered);
+    }
+
+    // Votes: sort questions by net vote count (up - down)
+    if (filter === "votes") {
+      const questions = await Question.aggregate([
+        {
+          $lookup: {
+            from: "votes",
+            localField: "_id",
+            foreignField: "postId",
+            as: "votes",
+          },
+        },
+        {
+          $addFields: {
+            voteCount: {
+              $sum: {
+                $map: {
+                  input: "$votes",
+                  as: "v",
+                  in: {
+                    $cond: [{ $eq: ["$$v.voteType", "up"] }, 1, -1],
+                  },
+                },
+              },
+            },
+          },
+        },
+        { $sort: { voteCount: -1 } },
+        {
+          $lookup: {
+            from: "users",
+            localField: "userId",
+            foreignField: "_id",
+            as: "user",
+          },
+        },
+        { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
+        {
+          $addFields: {
+            userId: "$user",
+          },
+        },
+        {
+          $project: {
+            user: 0,
+            votes: 0,
+          },
+        },
+      ]);
+
+      return res.json(questions);
+    }
+
+    // Default sorting: newest or active
+    let sortOption = { createdAt: -1 };
+    if (filter === "active") sortOption = { updatedAt: -1 };
+
+    const questions = await Question.find().populate("userId", "name reputation").sort(sortOption);
     res.json(questions);
   } catch (error) {
-    res.status(500).json({ message: "Failed to fetch questions" });
+    res.status(500).json({ message: error.message });
   }
 };
 
